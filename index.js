@@ -29,7 +29,7 @@ const client = new MongoClient(uri, {
 
 // middlewares
 const logger = async(req, res, next ) => {
-  console.log('called', req.host, req.originalUrl)
+  console.log('log: info', req.method, req.url)
   next()
 }
 
@@ -78,6 +78,12 @@ async function run() {
       .send({success: true})
     })
 
+    app.post('/logout', async(req, res) => {
+      const user = req.body
+      console.log('loging out', user)
+      res.clearCookie('token',{maxAge: 0}).send({success: true})
+    })
+
 
     // services related api
     app.get('/services', logger, async (req, res) => {
@@ -100,7 +106,7 @@ async function run() {
 
     // bookings
     app.get('/bookings', logger, veryfyToken, async (req, res) => {
-      console.log(req.query.email)
+      // console.log(req.query.email)
       console.log('user in the valid token',req.user)
       console.log('token---->', req.cookies.token)
       if(req.query.email !== req.user.email){

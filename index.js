@@ -9,7 +9,11 @@ require('dotenv').config()
 
 // middleware
 app.use(cors({
-  origin: ['http://localhost:5173'],
+  origin: [
+    'http://localhost:5173',
+    'https://auth-moha-milon-a28c8.web.app',
+    'https://auth-moha-milon-a28c8.firebaseapp.com'
+],
   credentials: true
 }));
 app.use(express.json());
@@ -31,6 +35,12 @@ const client = new MongoClient(uri, {
 const logger = async(req, res, next ) => {
   console.log('log: info', req.method, req.url)
   next()
+}
+
+const cookieOption = {
+  httpOnly: true,
+  sameSite: process.env.NODE_ENV === 'production'? 'none' : 'strict',
+  secure: process.env.NODE_ENV === 'production'? true : false,
 }
 
 
@@ -58,7 +68,7 @@ const veryfyToken = async(req, res, next) => {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
 
     const serviceCollection = client.db("carDoctor").collection("services");
@@ -71,17 +81,14 @@ async function run() {
       console.log(user)
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: '1h'})
 
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: false,
-      })
+      res.cookie('token', token, cookieOption)
       .send({success: true})
     })
 
     app.post('/logout', async(req, res) => {
       const user = req.body
       console.log('loging out', user)
-      res.clearCookie('token',{maxAge: 0}).send({success: true})
+      res.clearCookie('token',{ ...cookieOption, maxAge: 0 }).send({success: true})
     })
 
 
@@ -106,7 +113,7 @@ async function run() {
 
     // bookings
     app.get('/bookings', logger, veryfyToken, async (req, res) => {
-      // console.log(req.query.email)
+      console.log(req.query.email)
       console.log('user in the valid token',req.user)
       console.log('token---->', req.cookies.token)
       if(req.query.email !== req.user.email){
@@ -161,7 +168,7 @@ async function run() {
 
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
+    // await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
